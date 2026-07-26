@@ -30,6 +30,23 @@ app.get('/tasks/:id', (req, res) => {
     });
 });
 
+app.post('/tasks', (req, res) => {
+    const title = req.body.title;
+    console.log(req.body);
+    if (!title) {
+        return res.status(400).json({"error": "title is missing"});
+    }
+    else if (title.trim() === "") {
+        return res.status(400).json({"error": "title is empty"});
+    }
+    const id = tasks.length + 1;
+    const done = false;
+    const task = {id, title, done};
+    tasks.push(task);
+    return res.status(201).json(task);
+});
+
+
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`);
