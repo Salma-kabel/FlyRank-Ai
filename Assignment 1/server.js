@@ -46,7 +46,31 @@ app.post('/tasks', (req, res) => {
     return res.status(201).json(task);
 });
 
+app.put('/tasks/:id', (req, res) => {
+const task = tasks.find(t => t.id == req.params.id);
+if (!task) {
+    return res.status(404).json({"error": `Task ${req.params.id} not found`});
+}
+if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({"error": "body is missing"});
+}
+if (req.body.title !== undefined) {
+    task.title = req.body.title;
+}
+if (req.body.done !== undefined) {
+    task.done = req.body.done;
+}
+return res.json(task);
+});
 
+app.delete('/tasks/:id', (req, res) => {
+    const taskIndex = tasks.findIndex(t => t.id == req.params.id);
+if (taskIndex === -1) {
+    return res.status(404).json({"error": `Task ${req.params.id} not found`});
+}
+tasks.splice(taskIndex, 1);
+return res.sendStatus(204);
+});
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`);
