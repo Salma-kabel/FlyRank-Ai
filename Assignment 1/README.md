@@ -1,4 +1,4 @@
-                                                     # Task API
+<h1 align="center">Task API</h1>
 
 ## Introduction
 
@@ -71,7 +71,7 @@ Open the following URL after starting the server to access the interactive Swagg
 http://localhost:3000/docs
 ```
 
-![Swagger UI](images/swagger.PNG)
+![Swagger UI](Images/swagger.PNG)
 
-![GET /tasks Example](images/swagger-get-tasks.PNG)
+![GET /tasks Example](Images/swagger-get-tasks.PNG)
 
