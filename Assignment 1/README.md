@@ -71,7 +71,7 @@ Open the following URL after starting the server to access the interactive Swagg
 http://localhost:3000/docs
 ```
 
-(Images/swagger.PNG)
+![Swagger UI](Images/Swagger.PNG)
 
-![GET /tasks Example](Images/swagger-get-tasks.PNG)
+![GET /tasks Example](Images/Swagger-get-tasks.PNG)
 
