@@ -1,4 +1,4 @@
-# Task API
+                                                     # Task API
 
 ## Introduction
 
@@ -8,8 +8,6 @@ This is a simple REST API built with **Node.js** and **Express** for managing ta
 ## Prerequisites 
 - Node.js (v18 or later)
 - npm (comes with Node.js)
-
-## Installation
 
 ## Installation
 
@@ -27,6 +25,7 @@ node server.js
 ```
 
 ## Endpoints Table
+
 | Method | Endpoint      | Description                          |
 | ------ | ------------- | ------------------------------------ |
 | GET    | `/`           | Returns API information              |
@@ -72,7 +71,7 @@ Open the following URL after starting the server to access the interactive Swagg
 http://localhost:3000/docs
 ```
 
-![Swagger UI](images/swagger.png)
+![Swagger UI](images/swagger.PNG)
 
-![GET /tasks Example](images/swagger-get-tasks.png)
+![GET /tasks Example](images/swagger-get-tasks.PNG)
 
