@@ -30,9 +30,32 @@
     "/tasks": {
         "get": {
             "summary": "Returns all the tasks",
+            "parameters": [
+                {
+                    "name": "search",
+                    "in": "query",
+                    "required": false,
+                    "schema": {
+                        "type": "string"
+                    },
+                    "description": "Search term to filter tasks by title"
+                },
+                {
+                    "name": "done",
+                    "in": "query",
+                    "required": false,
+                    "schema": {
+                        "type": "boolean"
+                    },
+                    "description": "Filter tasks by their completion status (true for done, false for not done)"
+                }
+            ],
             "responses": {
                 "200": {
                     "description": "List of all tasks"
+                },
+                "400": {
+                    "description": "Invalid value for 'done' query parameter"
                 }    
             }
         },
@@ -134,6 +157,26 @@
                 },
                 "404": {
                     "description": "Unknown task ID"
+                }
+            }
+        }
+    },
+    "/stats": {
+        "get": {
+            "summary": "Returns statistics about the tasks",
+            "responses": {
+                "200": {
+                    "description": "Statistics of tasks"
+                }
+            }
+        }
+    },
+    "/reset": {
+        "post": {
+            "summary": "Resets the tasks to the initial state",
+            "responses": {
+                "200": {
+                    "description": "Tasks reset successfully"
                 }
             }
         }

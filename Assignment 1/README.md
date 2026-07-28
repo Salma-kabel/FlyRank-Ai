@@ -26,15 +26,17 @@ node server.js
 
 ## Endpoints Table
 
-| Method | Endpoint      | Description                          |
-| ------ | ------------- | ------------------------------------ |
-| GET    | `/`           | Returns API information              |
-| GET    | `/health`     | Checks whether the server is running |
-| GET    | `/tasks`      | Returns all tasks                    |
-| GET    | `/tasks/{id}` | Returns a task by ID                 |
-| POST   | `/tasks`      | Creates a new task                   |
-| PUT    | `/tasks/{id}` | Updates a task by ID                 |
-| DELETE | `/tasks/{id}` | Deletes a task by ID                 |
+| Method | Endpoint      | Description                                    |
+| ------ | ------------- | -----------------------------------------------|
+| GET    | `/`           | Returns API information                        |
+| GET    | `/health`     | Checks whether the server is running           |
+| GET    | `/tasks`      | Returns all tasks/optional filtering and search|
+| GET    | `/tasks/{id}` | Returns a task by ID                           |
+| POST   | `/tasks`      | Creates a new task                             |
+| PUT    | `/tasks/{id}` | Updates a task by ID                           |
+| DELETE | `/tasks/{id}` | Deletes a task by ID                           |
+| GET    | `/stats`      | Returns task statistics                        |
+| POST   | `/reset`      | Restores the initial seed tasks                |
 
 
 ## Example Command
@@ -79,3 +81,22 @@ The response returned after executing the **GET /tasks** endpoint in Swagger UI.
 
 ![GET /tasks Example](Images/Swagger-get-tasks.PNG)
 
+## Optional Extras Added
+
+- Filtering tasks:
+  - `GET /tasks?done=true` returns completed tasks
+  - `GET /tasks?done=false` returns incomplete tasks
+
+- Searching tasks:
+  - `GET /tasks?search=word` returns tasks whose titles contain the search term
+
+- Statistics:
+  - `GET /stats` returns the total number of tasks, completed tasks, and open tasks
+
+- Reset:
+  - `POST /reset` restores the original seed tasks
+
+## What happens when the server is restarted
+
+all the data we added is lost and tasks returns to be seedtasks
+the reason is that we dont have database so each time the server restarts the data is lost

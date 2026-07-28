@@ -3,7 +3,12 @@ const app = express();
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./openapi.json");
 const port = 3000;
-const tasks = [
+const seedtasks = [
+    {id: 1, title: 'task1', done: true},
+    {id: 2, title: 'task2', done: false},
+    {id : 3, title: 'task3', done: true}
+]
+let tasks = [
     {id: 1, title: 'task1', done: true},
     {id: 2, title: 'task2', done: false},
     {id : 3, title: 'task3', done: true}
@@ -22,11 +27,23 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/tasks', (req, res) => {
-    return res.json(tasks);
+    let result = tasks;
+    if (req.query.search) {
+        result = result.filter(t => t.title.includes(req.query.search));
+    }
+    if (req.query.done) {
+        if(req.query.done !== 'true' && req.query.done !== 'false') {
+            return res.status(400).json({"error": "Invalid value for 'done' query parameter"});
+        }
+        else {
+            result = result.filter(t => t.done === (req.query.done === 'true'));
+        }
+    }
+    return res.json(result);
 });
 
 app.get('/tasks/:id', (req, res) => {
-    task = tasks.find(t => t.id == req.params.id);
+    const task = tasks.find(t => t.id == req.params.id);
     if (task) {
         return res.json(task);
     }
@@ -75,6 +92,20 @@ if (taskIndex === -1) {
 }
 tasks.splice(taskIndex, 1);
 return res.sendStatus(204);
+});
+
+app.get('/stats', (req, res) => {
+    const stats = {
+    total: tasks.length,
+    done: tasks.filter(t => t.done).length,
+    open: tasks.filter(t => !t.done).length
+    };
+    return res.json(stats);
+});
+
+app.post('/reset', (req, res) => {
+    tasks = seedtasks.map(t => ({...t}));
+    return res.json(tasks);
 });
 
 app.listen(port, () => {
