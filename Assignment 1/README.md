@@ -70,8 +70,12 @@ Open the following URL after starting the server to access the interactive Swagg
 ```text
 http://localhost:3000/docs
 ```
-
+### Swagger UI Home
 ![Swagger UI](Images/Swagger.PNG)
+
+### GET /tasks Response
+
+The response returned after executing the **GET /tasks** endpoint in Swagger UI.
 
 ![GET /tasks Example](Images/Swagger-get-tasks.PNG)
 
