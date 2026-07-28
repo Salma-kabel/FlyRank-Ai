@@ -98,5 +98,5 @@ The response returned after executing the **GET /tasks** endpoint in Swagger UI.
 
 ## What happens when the server is restarted
 
-all the data we added is lost and tasks returns to be seedtasks
+all the data we added is lost and tasks returns to be seedtasks, 
 the reason is that we dont have database so each time the server restarts the data is lost
