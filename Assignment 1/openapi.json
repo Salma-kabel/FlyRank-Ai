@@ -107,9 +107,6 @@
                 "200": {
                     "description": "Task found"
                 },
-                "400": {
-                    "description": "Empty/Invalid body"
-                },
                 "404": {
                     "description": "Unknown task ID"
                 }

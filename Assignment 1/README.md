@@ -21,7 +21,7 @@ npm install
 ## Running the Server
 
 ```bash
-node server.js
+npm start
 ```
 
 ## Endpoints Table

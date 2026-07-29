@@ -1,7 +1,17 @@
 const express = require('express');
 const app = express();
 const swaggerUi = require("swagger-ui-express");
-const swaggerDocument = require("./openapi.json");
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerSpec = swaggerJsdoc({
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Task API',
+      version: '1.0.0',
+    },
+  },
+  apis: ['./server.js'],
+});
 const port = 3000;
 const seedtasks = [
     {id: 1, title: 'task1', done: true},
@@ -14,18 +24,59 @@ let tasks = [
     {id : 3, title: 'task3', done: true}
 ]
 
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
 
-
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Returns information about the API
+ *     responses:
+ *       200:
+ *         description: API information
+ */
 app.get('/', (req, res) => {
     res.json({ "name": "Task API", "version": "1.0", "endpoints": ["/tasks"] });
 });
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Checks if the server is running
+ *     responses:
+ *       200:
+ *         description: Server is alive and running
+ */
 app.get('/health', (req, res) => {
     res.json({ "status": "ok" });
 });
 
+/**
+ * @swagger
+ * /tasks:
+ *   get:
+ *     summary: Returns all tasks
+ *     parameters:
+ *       - name: search
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Search term to filter tasks by title
+ *       - name: done
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: boolean
+ *         description: Filter tasks by completion status
+ *     responses:
+ *       200:
+ *         description: List of all tasks
+ *       400:
+ *         description: Invalid value for 'done' query parameter
+ */
 app.get('/tasks', (req, res) => {
     let result = tasks;
     if (req.query.search) {
@@ -39,9 +90,41 @@ app.get('/tasks', (req, res) => {
             result = result.filter(t => t.done === (req.query.done === 'true'));
         }
     }
-    return res.json(result);
+    const total = result.length;
+    const limit = req.query.limit !== undefined ? parseInt(req.query.limit) : total;
+    const offset = req.query.offset !== undefined ? parseInt(req.query.offset) : 0;
+
+    if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0) {
+        return res.status(400).json({"error": "'limit' and 'offset' must be non-negative numbers"});
+    }
+
+    result = result.slice(offset, offset + limit);
+
+    return res.json({
+        total,
+        limit,
+        offset,
+        tasks: result
+    });
 });
 
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   get:
+ *     summary: Returns a specific task by ID
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Task found
+ *       404:
+ *         description: Unknown task ID
+ */
 app.get('/tasks/:id', (req, res) => {
     const task = tasks.find(t => t.id == req.params.id);
     if (task) {
@@ -52,14 +135,35 @@ app.get('/tasks/:id', (req, res) => {
     });
 });
 
+/**
+ * @swagger
+ * /tasks:
+ *   post:
+ *     summary: Create a new task
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title]
+ *             properties:
+ *               title:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Task created successfully
+ *       400:
+ *         description: Title is missing or empty
+ */
 app.post('/tasks', (req, res) => {
     const title = req.body.title;
     console.log(req.body);
     if (!title) {
         return res.status(400).json({"error": "title is missing"});
     }
-    else if (title.trim() === "") {
-        return res.status(400).json({"error": "title is empty"});
+    else if (typeof title !== 'string' || title.trim() === "") {
+        return res.status(400).json({"error": "Invalid title. Title must be a non-empty string."});
     }
     const id = tasks.length ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
     const done = false;
@@ -68,6 +172,36 @@ app.post('/tasks', (req, res) => {
     return res.status(201).json(task);
 });
 
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   put:
+ *     summary: Updates an existing task by ID
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               done:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Task updated successfully
+ *       400:
+ *         description: Empty/invalid body
+ *       404:
+ *         description: Unknown task ID
+ */
 app.put('/tasks/:id', (req, res) => {
 const task = tasks.find(t => t.id == req.params.id);
 if (!task) {
@@ -80,6 +214,9 @@ if (req.body.title === undefined && req.body.done === undefined) {
     return res.status(400).json({"error": "body must contain at least one of 'title' or 'done'"});
 }
 if (req.body.title !== undefined) {
+    if (typeof req.body.title !== 'string' || req.body.title.trim() === '') {
+        return res.status(400).json({ error: "'title' must be a non-empty string" });
+    }
     task.title = req.body.title;
 }
 if (req.body.done !== undefined) {
@@ -91,15 +228,41 @@ if (req.body.done !== undefined) {
 return res.json(task);
 });
 
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   delete:
+ *     summary: Deletes a specific task by ID
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Task deleted successfully
+ *       404:
+ *         description: Unknown task ID
+ */
 app.delete('/tasks/:id', (req, res) => {
     const taskIndex = tasks.findIndex(t => t.id == req.params.id);
 if (taskIndex === -1) {
     return res.status(404).json({"error": `Task ${req.params.id} not found`});
 }
 tasks.splice(taskIndex, 1);
-return res.sendStatus(204);
+return res.status(204).send();
 });
 
+/**
+ * @swagger
+ * /stats:
+ *   get:
+ *     summary: Returns statistics about the tasks
+ *     responses:
+ *       200:
+ *         description: Statistics of tasks
+ */
 app.get('/stats', (req, res) => {
     const stats = {
     total: tasks.length,
@@ -109,6 +272,15 @@ app.get('/stats', (req, res) => {
     return res.json(stats);
 });
 
+/**
+ * @swagger
+ * /reset:
+ *   post:
+ *     summary: Resets the tasks to the initial state
+ *     responses:
+ *       200:
+ *         description: Tasks reset successfully
+ */
 app.post('/reset', (req, res) => {
     tasks = seedtasks.map(t => ({...t}));
     return res.json(tasks);
