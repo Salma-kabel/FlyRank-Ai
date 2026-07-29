@@ -12,7 +12,24 @@ const swaggerSpec = swaggerJsdoc({
   },
   apis: ['./server.js'],
 });
+const Database = require("better-sqlite3");
+const db = new Database("tasks.db");
 const port = 3000;
+const rows = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM tasks
+`).get();
+
+if (rows.count === 0) {
+    db.prepare(`
+    INSERT INTO tasks (id, title, done)
+    VALUES
+        (1, 'Buy a book', 0),
+        (2, 'Read a book', 1),
+        (3, 'Cook a meal', 0)
+`).run();
+}
+
 const seedtasks = [
     {id: 1, title: 'task1', done: true},
     {id: 2, title: 'task2', done: false},
@@ -26,6 +43,14 @@ let tasks = [
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY,
+    title TEXT,
+    done BOOLEAN
+);
+`);
 
 /**
  * @swagger
