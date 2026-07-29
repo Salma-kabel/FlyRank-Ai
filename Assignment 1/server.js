@@ -61,7 +61,7 @@ app.post('/tasks', (req, res) => {
     else if (title.trim() === "") {
         return res.status(400).json({"error": "title is empty"});
     }
-    const id = tasks.length + 1;
+    const id = tasks.length ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
     const done = false;
     const task = {id, title, done};
     tasks.push(task);
@@ -76,10 +76,16 @@ if (!task) {
 if (!req.body || Object.keys(req.body).length === 0) {
     return res.status(400).json({"error": "body is missing"});
 }
+if (req.body.title === undefined && req.body.done === undefined) {
+    return res.status(400).json({"error": "body must contain at least one of 'title' or 'done'"});
+}
 if (req.body.title !== undefined) {
     task.title = req.body.title;
 }
 if (req.body.done !== undefined) {
+    if (typeof req.body.done !== 'boolean') {
+        return res.status(400).json({ error: "'done' must be a boolean" });
+    }
     task.done = req.body.done;
 }
 return res.json(task);

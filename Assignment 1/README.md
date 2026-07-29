@@ -100,3 +100,8 @@ The response returned after executing the **GET /tasks** endpoint in Swagger UI.
 
 all the data we added is lost and tasks returns to be seedtasks, 
 the reason is that we dont have database so each time the server restarts the data is lost
+
+## AI vs Me
+- the ai code is generally more optimized also, the way it generated the next id for a new task and the way it handled wrong input in the put '/tasks/id' endpoint was better than mine, i understand most of the version with a few commands search i will be able to explain it well.
+- i told it to generate the value of done in the post endpoint randomly instead of false and in the post and put endpoints it returned only the updated or created task not the whole list.
+- i forgot to specify whether the search is gonna be case sensitive or not so the ai decided it will be case insensitive.
