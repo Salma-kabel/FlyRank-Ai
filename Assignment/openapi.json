@@ -1,0 +1,182 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Task API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+        "get": {
+            "summary": "Returns information about the API",
+            "responses": {
+                "200": {
+                    "description": "API information"
+                    }
+                }
+            }
+        },
+
+    "/health": {
+        "get": {
+            "summary": "Checks if the server is running",
+            "responses": {
+                "200": {
+                    "description": "Server is alive and running"
+                }
+            }
+        }
+    },
+
+    "/tasks": {
+        "get": {
+            "summary": "Returns all the tasks",
+            "parameters": [
+                {
+                    "name": "search",
+                    "in": "query",
+                    "required": false,
+                    "schema": {
+                        "type": "string"
+                    },
+                    "description": "Search term to filter tasks by title"
+                },
+                {
+                    "name": "done",
+                    "in": "query",
+                    "required": false,
+                    "schema": {
+                        "type": "boolean"
+                    },
+                    "description": "Filter tasks by their completion status (true for done, false for not done)"
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "List of all tasks"
+                },
+                "400": {
+                    "description": "Invalid value for 'done' query parameter"
+                }    
+            }
+        },
+        "post": {
+            "summary": "Create a new task",
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["title" ],
+                            "properties": {
+                                "title": {
+                                    "type": "string",
+                                    "description": "Title of the task"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "201": {
+                    "description": "Task created successfully"
+                },
+                "400": {
+                    "description": "Title is missing or empty"
+                }
+            }
+        }
+    },
+
+    "/tasks/{id}": {
+        "parameters": [
+            {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "integer"
+                },
+                "description": "ID of the task"
+            }
+        ],
+        "get": {
+            "summary": "Returns a specific task by ID",
+            "responses": {
+                "200": {
+                    "description": "Task found"
+                },
+                "404": {
+                    "description": "Unknown task ID"
+                }
+            }
+        },
+        "put": {
+            "summary": "Updates an existing task by ID",
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "title": {
+                                    "type": "string",
+                                    "description": "Title of the task"
+                                },
+                                "done": {
+                                    "type": "boolean",
+                                    "example": true
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Task updated successfully"
+                },
+                "400": {
+                    "description": "Empty/Invalid body"
+                },
+                "404": {
+                    "description": "Unknown task ID"
+                }
+            }
+        },
+        "delete": {
+            "summary": "Deletes a specific task by ID",
+            "responses": {
+                "204": {
+                    "description": "Task deleted successfully"
+                },
+                "404": {
+                    "description": "Unknown task ID"
+                }
+            }
+        }
+    },
+    "/stats": {
+        "get": {
+            "summary": "Returns statistics about the tasks",
+            "responses": {
+                "200": {
+                    "description": "Statistics of tasks"
+                }
+            }
+        }
+    },
+    "/reset": {
+        "post": {
+            "summary": "Resets the tasks to the initial state",
+            "responses": {
+                "200": {
+                    "description": "Tasks reset successfully"
+                }
+            }
+        }
+    }
+  }
+}
