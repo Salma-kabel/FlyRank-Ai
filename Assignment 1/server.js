@@ -17,17 +17,6 @@ const db = new Database("tasks.db");
 const port = 3000;
 
 
-const seedtasks = [
-    {id: 1, title: 'task1', done: true},
-    {id: 2, title: 'task2', done: false},
-    {id : 3, title: 'task3', done: true}
-]
-let tasks = [
-    {id: 1, title: 'task1', done: true},
-    {id: 2, title: 'task2', done: false},
-    {id : 3, title: 'task3', done: true}
-]
-
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
 
@@ -345,11 +334,12 @@ app.delete('/tasks/:id', (req, res) => {
  *         description: Statistics of tasks
  */
 app.get('/stats', (req, res) => {
-    const stats = {
-    total: tasks.length,
-    done: tasks.filter(t => t.done).length,
-    open: tasks.filter(t => !t.done).length
-    };
+    const stats = db.prepare(`
+        SELECT COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN done = 1 THEN 1 ELSE 0 END), 0) AS done,
+        COALESCE(SUM(CASE WHEN done = 0 THEN 1 ELSE 0 END), 0) AS open
+        FROM tasks
+    `).get();
     return res.json(stats);
 });
 
@@ -363,8 +353,18 @@ app.get('/stats', (req, res) => {
  *         description: Tasks reset successfully
  */
 app.post('/reset', (req, res) => {
-    tasks = seedtasks.map(t => ({...t}));
-    return res.json(tasks);
+    db.prepare('DELETE FROM tasks').run();
+    db.prepare(`
+    INSERT INTO tasks (id, title, done)
+    VALUES
+        (1, 'Buy a book', 0),
+        (2, 'Read a book', 1),
+        (3, 'Cook a meal', 0)
+    `).run();
+    const updatedTasks = db.prepare(`
+        SELECT * FROM tasks
+        `).all();
+    return res.json(updatedTasks.map(formatTask));
 });
 
 app.listen(port, () => {
