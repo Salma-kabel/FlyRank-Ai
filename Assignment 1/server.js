@@ -15,20 +15,7 @@ const swaggerSpec = swaggerJsdoc({
 const Database = require("better-sqlite3");
 const db = new Database("tasks.db");
 const port = 3000;
-const rows = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM tasks
-`).get();
 
-if (rows.count === 0) {
-    db.prepare(`
-    INSERT INTO tasks (id, title, done)
-    VALUES
-        (1, 'Buy a book', 0),
-        (2, 'Read a book', 1),
-        (3, 'Cook a meal', 0)
-`).run();
-}
 
 const seedtasks = [
     {id: 1, title: 'task1', done: true},
@@ -51,6 +38,21 @@ CREATE TABLE IF NOT EXISTS tasks (
     done BOOLEAN
 );
 `);
+
+const rows = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM tasks
+`).get();
+
+if (rows.count === 0) {
+    db.prepare(`
+    INSERT INTO tasks (id, title, done)
+    VALUES
+        (1, 'Buy a book', 0),
+        (2, 'Read a book', 1),
+        (3, 'Cook a meal', 0)
+`).run();
+}
 
 /**
  * @swagger
@@ -103,18 +105,36 @@ app.get('/health', (req, res) => {
  *         description: Invalid value for 'done' query parameter
  */
 app.get('/tasks', (req, res) => {
-    let result = tasks;
-    if (req.query.search) {
-        result = result.filter(t => t.title.includes(req.query.search));
+    if (req.query.done !== undefined && req.query.done !== 'true' && req.query.done !== 'false') {
+        return res.status(400).json({"error": "Invalid value for 'done' query parameter. Must be 'true' or 'false'."});
     }
-    if (req.query.done) {
-        if(req.query.done !== 'true' && req.query.done !== 'false') {
-            return res.status(400).json({"error": "Invalid value for 'done' query parameter"});
-        }
-        else {
-            result = result.filter(t => t.done === (req.query.done === 'true'));
-        }
+    const searchTerm = req.query.search ? `%${req.query.search}%` : null;
+    const doneTerm = req.query.done ? (req.query.done === 'true' ? 1 : 0) : null;
+    let result;
+    if (!req.query.search && !req.query.done) {
+        result = db.prepare(`
+        SELECT * FROM tasks
+        `).all();
     }
+    else if (req.query.search && !req.query.done) {
+        result = db.prepare(`
+        SELECT * FROM tasks
+        WHERE title LIKE ?
+        `).all(searchTerm);
+    }
+    else if (req.query.done && !req.query.search) {
+        result =  db.prepare(`
+        SELECT * FROM tasks
+        WHERE done = ?
+        `).all(doneTerm);
+        }
+    else {
+        result = db.prepare(`
+        SELECT * FROM tasks
+        WHERE title LIKE ? AND done = ?
+        `).all(searchTerm, doneTerm);
+    }
+
     const total = result.length;
     const limit = req.query.limit !== undefined ? parseInt(req.query.limit) : total;
     const offset = req.query.offset !== undefined ? parseInt(req.query.offset) : 0;
@@ -126,9 +146,6 @@ app.get('/tasks', (req, res) => {
     result = result.slice(offset, offset + limit);
 
     return res.json({
-        total,
-        limit,
-        offset,
         tasks: result
     });
 });
@@ -151,7 +168,10 @@ app.get('/tasks', (req, res) => {
  *         description: Unknown task ID
  */
 app.get('/tasks/:id', (req, res) => {
-    const task = tasks.find(t => t.id == req.params.id);
+    const task = db.prepare(`
+        SELECT * FROM tasks
+        WHERE id = ?
+    `).get(req.params.id);
     if (task) {
         return res.json(task);
     }
