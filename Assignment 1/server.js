@@ -23,8 +23,10 @@ app.use(express.json());
 db.exec(`
 CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY,
-    title TEXT,
-    done BOOLEAN
+    title TEXT NOT NULL,
+    done BOOLEAN,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
 );
 `);
 
@@ -34,13 +36,15 @@ const rows = db.prepare(`
 `).get();
 
 if (rows.count === 0) {
+    const now = new Date().toISOString();
+
     db.prepare(`
-    INSERT INTO tasks (id, title, done)
+    INSERT INTO tasks (id, title, done, created_at, updated_at)
     VALUES
-        (1, 'Buy a book', 0),
-        (2, 'Read a book', 1),
-        (3, 'Cook a meal', 0)
-`).run();
+        (1, 'Buy a book', 0, ?, ?),
+        (2, 'Read a book', 1, ?, ?),
+        (3, 'Cook a meal', 0, ?, ?)
+`).run(now, now, now, now, now, now);
 }
 
 function formatTask(task) {
@@ -110,25 +114,29 @@ app.get('/tasks', (req, res) => {
     let result;
     if (!req.query.search && !req.query.done) {
         result = db.prepare(`
-        SELECT * FROM tasks
+        SELECT id, title, done FROM tasks
+        ORDER BY title ASC
         `).all();
     }
     else if (req.query.search && !req.query.done) {
         result = db.prepare(`
-        SELECT * FROM tasks
+        SELECT id, title, done FROM tasks
         WHERE title LIKE ?
+        ORDER BY title ASC
         `).all(searchTerm);
     }
     else if (req.query.done && !req.query.search) {
         result =  db.prepare(`
-        SELECT * FROM tasks
+        SELECT id, title, done FROM tasks
         WHERE done = ?
+        ORDER BY title ASC
         `).all(doneTerm);
         }
     else {
         result = db.prepare(`
-        SELECT * FROM tasks
+        SELECT id, title, done FROM tasks
         WHERE title LIKE ? AND done = ?
+        ORDER BY title ASC
         `).all(searchTerm, doneTerm);
     }
 
@@ -166,7 +174,7 @@ app.get('/tasks', (req, res) => {
  */
 app.get('/tasks/:id', (req, res) => {
     const task = db.prepare(`
-        SELECT * FROM tasks
+        SELECT id, title, done FROM tasks
         WHERE id = ?
     `).get(Number(req.params.id));
     if (task) {
@@ -211,12 +219,13 @@ app.post('/tasks', (req, res) => {
         FROM tasks
         `).get();
     const id = row.maxId === null? 1 : row.maxId + 1;
-    const task = { id, title, done: false };
+    const task = { id, title, done: false, created_at: new Date().toISOString(),
+         updated_at: new Date().toISOString() };
     db.prepare(`
-        INSERT INTO tasks (id, title, done)
-        VALUES (?, ?, ?)
-    `).run(task.id, task.title, task.done? 1 : 0);
-    return res.status(201).json(task);
+        INSERT INTO tasks (id, title, done, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+    `).run(task.id, task.title, task.done? 1 : 0, task.created_at, task.updated_at);
+    return res.status(201).json(formatTask(task));
 });
 
 /**
@@ -269,9 +278,9 @@ app.put('/tasks/:id', (req, res) => {
         }
         db.prepare(`
         UPDATE tasks
-        SET title = ?
+        SET title = ?, updated_at = ?
         WHERE id = ?
-        `).run(req.body.title, Number(req.params.id));
+        `).run(req.body.title, new Date().toISOString(), Number(req.params.id));
     }
     if (req.body.done !== undefined) {
         if (typeof req.body.done !== 'boolean') {
@@ -279,12 +288,12 @@ app.put('/tasks/:id', (req, res) => {
         }
         db.prepare(`
         UPDATE tasks
-        SET done = ?
+        SET done = ?, updated_at = ?
         WHERE id = ?
-        `).run(req.body.done ? 1 : 0, Number(req.params.id));
+        `).run(req.body.done ? 1 : 0, new Date().toISOString(), Number(req.params.id));
     }
     const updatedTask = db.prepare(`
-        SELECT * FROM tasks
+        SELECT id, title, done FROM tasks
         WHERE id = ?
         `).get(Number(req.params.id));
 
@@ -353,16 +362,18 @@ app.get('/stats', (req, res) => {
  *         description: Tasks reset successfully
  */
 app.post('/reset', (req, res) => {
+    const now = new Date().toISOString();
     db.prepare('DELETE FROM tasks').run();
     db.prepare(`
-    INSERT INTO tasks (id, title, done)
+    INSERT INTO tasks (id, title, done, created_at, updated_at)
     VALUES
-        (1, 'Buy a book', 0),
-        (2, 'Read a book', 1),
-        (3, 'Cook a meal', 0)
-    `).run();
+        (1, 'Buy a book', 0, ?, ?),
+        (2, 'Read a book', 1, ?, ?),
+        (3, 'Cook a meal', 0, ?, ?)
+    `).run(now, now, now, now, now, now);
     const updatedTasks = db.prepare(`
-        SELECT * FROM tasks
+        SELECT id, title, done FROM tasks
+        ORDER BY title ASC
         `).all();
     return res.json(updatedTasks.map(formatTask));
 });

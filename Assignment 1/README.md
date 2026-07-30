@@ -93,8 +93,15 @@ The response returned after executing the **GET /tasks** endpoint in Swagger UI.
 - Statistics:
   - `GET /stats` returns the total number of tasks, completed tasks, and open tasks
 
+- Alphabetical sorting:
+  - Return tasks ordered by title.
+
 - Reset:
   - `POST /reset` resets the database to its initial state
+
+- Timestamps:
+  - Shows when was each task created and modified at
+
 
 ## Database Choice
 
