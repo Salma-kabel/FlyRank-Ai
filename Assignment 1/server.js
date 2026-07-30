@@ -203,17 +203,22 @@ app.get('/tasks/:id', (req, res) => {
  */
 app.post('/tasks', (req, res) => {
     const title = req.body.title;
-    console.log(req.body);
-    if (!title) {
+    if (title === undefined) {
         return res.status(400).json({"error": "title is missing"});
     }
     else if (typeof title !== 'string' || title.trim() === "") {
         return res.status(400).json({"error": "Invalid title. Title must be a non-empty string."});
     }
-    const id = tasks.length ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
-    const done = false;
-    const task = {id, title, done};
-    tasks.push(task);
+    const row = db.prepare(`
+        SELECT MAX(id) AS maxId
+        FROM tasks
+        `).get();
+    const id = row.maxId === null? 1 : row.maxId + 1;
+    const task = { id, title, done: false };
+    db.prepare(`
+        INSERT INTO tasks (id, title, done)
+        VALUES (?, ?, ?)
+    `).run(task.id, task.title, task.done? 1 : 0);
     return res.status(201).json(task);
 });
 
