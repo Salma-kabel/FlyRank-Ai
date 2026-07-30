@@ -54,6 +54,14 @@ if (rows.count === 0) {
 `).run();
 }
 
+function formatTask(task) {
+    return {
+        id: task.id,
+        title: task.title,
+        done: Boolean(task.done)
+    };
+}
+
 /**
  * @swagger
  * /:
@@ -146,7 +154,7 @@ app.get('/tasks', (req, res) => {
     result = result.slice(offset, offset + limit);
 
     return res.json({
-        tasks: result
+        tasks: result.map(formatTask)
     });
 });
 
@@ -171,9 +179,9 @@ app.get('/tasks/:id', (req, res) => {
     const task = db.prepare(`
         SELECT * FROM tasks
         WHERE id = ?
-    `).get(req.params.id);
+    `).get(Number(req.params.id));
     if (task) {
-        return res.json(task);
+        return res.json(formatTask(task));
     }
     return res.status(404).json({
         "error": `Task ${req.params.id} not found`
@@ -253,29 +261,45 @@ app.post('/tasks', (req, res) => {
  *         description: Unknown task ID
  */
 app.put('/tasks/:id', (req, res) => {
-const task = tasks.find(t => t.id == req.params.id);
-if (!task) {
-    return res.status(404).json({"error": `Task ${req.params.id} not found`});
-}
-if (!req.body || Object.keys(req.body).length === 0) {
-    return res.status(400).json({"error": "body is missing"});
-}
-if (req.body.title === undefined && req.body.done === undefined) {
-    return res.status(400).json({"error": "body must contain at least one of 'title' or 'done'"});
-}
-if (req.body.title !== undefined) {
-    if (typeof req.body.title !== 'string' || req.body.title.trim() === '') {
-        return res.status(400).json({ error: "'title' must be a non-empty string" });
+    const task = db.prepare(`
+        SELECT * FROM tasks
+        WHERE id = ?
+        `).get(Number(req.params.id));
+    if (!task) {
+        return res.status(404).json({"error": `Task ${req.params.id} not found`});
     }
-    task.title = req.body.title;
-}
-if (req.body.done !== undefined) {
-    if (typeof req.body.done !== 'boolean') {
-        return res.status(400).json({ error: "'done' must be a boolean" });
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({"error": "body is missing"});
     }
-    task.done = req.body.done;
-}
-return res.json(task);
+    if (req.body.title === undefined && req.body.done === undefined) {
+        return res.status(400).json({"error": "body must contain at least one of 'title' or 'done'"});
+    }
+    if (req.body.title !== undefined) {
+        if (typeof req.body.title !== 'string' || req.body.title.trim() === '') {
+            return res.status(400).json({ error: "'title' must be a non-empty string" });
+        }
+        db.prepare(`
+        UPDATE tasks
+        SET title = ?
+        WHERE id = ?
+        `).run(req.body.title, Number(req.params.id));
+    }
+    if (req.body.done !== undefined) {
+        if (typeof req.body.done !== 'boolean') {
+            return res.status(400).json({ error: "'done' must be a boolean" });
+        }
+        db.prepare(`
+        UPDATE tasks
+        SET done = ?
+        WHERE id = ?
+        `).run(req.body.done ? 1 : 0, Number(req.params.id));
+    }
+    const updatedTask = db.prepare(`
+        SELECT * FROM tasks
+        WHERE id = ?
+        `).get(Number(req.params.id));
+
+    return res.json(formatTask(updatedTask));
 });
 
 /**
@@ -296,12 +320,19 @@ return res.json(task);
  *         description: Unknown task ID
  */
 app.delete('/tasks/:id', (req, res) => {
-    const taskIndex = tasks.findIndex(t => t.id == req.params.id);
-if (taskIndex === -1) {
-    return res.status(404).json({"error": `Task ${req.params.id} not found`});
-}
-tasks.splice(taskIndex, 1);
-return res.status(204).send();
+    const task = db.prepare(`
+        SELECT * FROM tasks
+        WHERE id = ?
+        `).get(Number(req.params.id));
+
+    if (!task) {
+        return res.status(404).json({"error": `Task ${req.params.id} not found`});
+    }
+    db.prepare(`
+        DELETE FROM tasks
+        WHERE id = ?
+        `).run(req.params.id);
+    return res.status(204).send();
 });
 
 /**
