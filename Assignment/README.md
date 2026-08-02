@@ -2,26 +2,64 @@
 
 ## Introduction
 
-This is a simple REST API built with **Node.js**, **Express**, and **SQLite** for managing tasks. It supports full CRUD (Create, Read, Update, Delete) operations and includes interactive API documentation using Swagger UI.
+This is a simple REST API built with **Node.js**, **Express**, and **PostgreSQL** for managing tasks. The application runs together with a PostgreSQL database using **Docker Compose** and supports full CRUD (Create, Read, Update, Delete) operations. Interactive API documentation is provided through Swagger UI.
 
+## Architecture
+
+The application keeps the same route and service layers as the previous version. Only the data access layer was replaced by a PostgreSQL repository using the `pg` library. The service and route responsibilities remained the same, with the primary change being the use of asynchronous database operations.
 
 ## Prerequisites 
-- Node.js (v18 or later)
-- npm (comes with Node.js)
+- Docker Desktop (recommended)
 
 ## Installation
 
 ```bash
 git clone https://github.com/Salma-kabel/FlyRank-Ai.git
 cd "FlyRank-Ai"
-cd "Assignment 1"
-npm install
+cd "Assignment"
+```
+## Environment Variables
+
+The default values in `.env.example` work with the provided Docker Compose configuration. You only need to modify them if you want to use different database credentials or settings.
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
 ## Running the Server
 
+### Start the application and PostgreSQL together:
+
+This command builds the application image (the first time) and starts both the Express application and the PostgreSQL database.
+
 ```bash
-npm start
+docker compose up --build
+```
+
+The API is available at http://localhost:3000 after the containers start.
+
+Swagger UI is available at http://localhost:3000/docs.
+
+### Stop the containers:
+
+```bash
+docker compose down
+```
+
+### Subsequent Runs
+
+After the initial build, start the application with:
+
+```bash
+docker compose up
 ```
 
 ## Endpoints Table
@@ -30,7 +68,7 @@ npm start
 | ------ | ------------- | -----------------------------------------------|
 | GET    | `/`           | Returns API information                        |
 | GET    | `/health`     | Checks whether the server is running           |
-| GET    | `/tasks`      | Returns all tasks/optional filtering and search|
+| GET    | `/tasks`      | Returns all tasks with optional filtering and search|
 | GET    | `/tasks/{id}` | Returns a task by ID                           |
 | POST   | `/tasks`      | Creates a new task                             |
 | PUT    | `/tasks/{id}` | Updates a task by ID                           |
@@ -43,6 +81,8 @@ npm start
 
 Command:
 
+The following command returns all tasks ordered alphabetically by title.
+
 ```bash
 curl -i http://localhost:3000/tasks
 ```
@@ -52,16 +92,16 @@ Output:
 HTTP/1.1 200 OK
 X-Powered-By: Express
 Content-Type: application/json; charset=utf-8
-Content-Length: 113
-ETag: W/"71-IiGSg6Uv21rjz/h4zN7TAEWUa9k"
-Date: Tue, 28 Jul 2026 11:59:55 GMT
+Content-Length: 248
+ETag: W/"f8-NTMghTgbS0cjHf9kO7xiwhBSyyo"
+Date: Sun, 02 Aug 2026 13:51:24 GMT
 Connection: keep-alive
 Keep-Alive: timeout=5
 
 [
-    {"id":1,"title":"task1","done":true},
-    {"id":2,"title":"task2","done":false},
-    {"id":3,"title":"task3","done":true}
+  {"id":1,"title":"Buy a book","done":false},
+  {"id":3,"title":"Cook a meal","done":false},
+  {"id":2,"title":"Read a book","done":true}
 ]
 ```
 
@@ -93,45 +133,48 @@ The response returned after executing the **GET /tasks** endpoint in Swagger UI.
 - Statistics:
   - `GET /stats` returns the total number of tasks, completed tasks, and open tasks
 
-- Alphabetical sorting:
-  - Return tasks ordered by title.
-
 - Reset:
   - `POST /reset` resets the database to its initial state
 
 - Timestamps:
-  - Shows when was each task created and modified at
+  - Stores the creation and last updated timestamps for each task.
 
+- Alphabetical sorting:
+  - `GET /tasks` returns tasks ordered alphabetically by title.
 
 ## Database Choice
 
-SQLite was chosen because it is lightweight, requires no separate database server, and is easy to set up. 
-It stores the entire database in a single file, which makes it suitable for this small Task API project.
-
-## Database Location
-
-The SQLite database file is stored at:
-
-`./tasks.db`
+PostgreSQL was chosen because it is a production-ready relational database that supports concurrent connections, robust SQL features, and is commonly used in backend applications. Running PostgreSQL in Docker provides a consistent development environment without requiring a local database installation.
 
 ## Database Initialization
 
-The database and required tables are automatically created when the server starts.
+The PostgreSQL database and the required `tasks` table are automatically initialized when the application starts. If the table is empty, three sample tasks are inserted automatically.
 No manual database setup is required after cloning the repository.
 
 ## Database Persistence
 
-Task data is stored in SQLite, so changes made through the API are preserved after restarting the server.
+The PostgreSQL database uses a Docker volume (`postgres-data`) to persist data. Tasks remain available after the containers are stopped and started again because the PostgreSQL data is stored in a persistent Docker volume.
 
-## Database Screenshot
+### Persistence Verification
 
-![Database Screenshot](Images/database.PNG)
+To verify database persistence:
 
-## Example SQL Query
+1. Started the application with `docker compose up`.
+2. Created and modified tasks using the API.
+3. Stopped the containers with `docker compose down`.
+4. Started the application again with `docker compose up`.
+5. Confirmed that the previously created and modified tasks were still present.
 
-Example query used to view all tasks:
+This demonstrates that PostgreSQL data is persisted using the Docker volume (`postgres-data`).
 
-```sql
-SELECT * FROM tasks;
-```
-![Database Query](Images/query.PNG)
+## Technologies Used
+
+- Node.js
+- Express
+- PostgreSQL
+- Docker
+- Docker Compose
+- pg
+- Swagger UI
+
+

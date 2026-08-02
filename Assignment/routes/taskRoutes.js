@@ -2,14 +2,6 @@ const express = require("express");
 const router = express.Router();
 const taskService = require("../services/taskService");
 
-function formatTask(task) {
-    return {
-        id: task.id,
-        title: task.title,
-        done: Boolean(task.done)
-    };
-}
-
 /**
  * @swagger
  * /:
@@ -60,13 +52,11 @@ router.get('/health', (req, res) => {
  *       400:
  *         description: Invalid value for 'done' query parameter
  */
-router.get('/tasks', (req, res, next) => {
+router.get('/tasks', async (req, res, next) => {
     try {
-        const tasks = taskService.getAllTasks(req.query);
+        const tasks = await taskService.getAllTasks(req.query);
 
-        return res.json({
-            tasks: tasks.map(formatTask)
-        });
+        return res.json(tasks);
     }
     catch (err) {
         next(err);
@@ -90,10 +80,10 @@ router.get('/tasks', (req, res, next) => {
  *       404:
  *         description: Unknown task ID
  */
-router.get('/tasks/:id', (req, res, next) => {
+router.get('/tasks/:id', async (req, res, next) => {
     try {
-        const task = taskService.getTaskById(Number(req.params.id));
-        return res.json(formatTask(task));
+        const task = await taskService.getTaskById(Number(req.params.id));
+        return res.json(task);
     }
     catch (err) {
         next(err);
@@ -121,10 +111,10 @@ router.get('/tasks/:id', (req, res, next) => {
  *       400:
  *         description: Title is missing or empty
  */
-router.post('/tasks', (req, res, next) => {
+router.post('/tasks', async (req, res, next) => {
     try {
-        const task = taskService.createTask(req.body);
-        return res.status(201).json(formatTask(task));
+        const task = await taskService.createTask(req.body);
+        return res.status(201).json(task);
     } catch (err) {
         next(err);
     }
@@ -160,14 +150,14 @@ router.post('/tasks', (req, res, next) => {
  *       404:
  *         description: Unknown task ID
  */
-router.put('/tasks/:id', (req, res, next) => {
+router.put('/tasks/:id', async (req, res, next) => {
     try {
-        const task = taskService.updateTask(
+        const task = await taskService.updateTask(
             Number(req.params.id),
             req.body
         );
 
-        return res.json(formatTask(task));
+        return res.json(task);
     }
     catch (err) {
         next(err);
@@ -191,9 +181,9 @@ router.put('/tasks/:id', (req, res, next) => {
  *       404:
  *         description: Unknown task ID
  */
-router.delete('/tasks/:id', (req, res, next) => {
+router.delete('/tasks/:id', async (req, res, next) => {
     try {
-        taskService.deleteTask(Number(req.params.id));
+        await taskService.deleteTask(Number(req.params.id));
         return res.status(204).send();
     }
     catch (err) {
@@ -210,9 +200,9 @@ router.delete('/tasks/:id', (req, res, next) => {
  *       200:
  *         description: Statistics of tasks
  */
-router.get('/stats', (req, res, next) => {
+router.get('/stats', async (req, res, next) => {
     try {
-        const stats = taskService.getStats();
+        const stats = await taskService.getStats();
         return res.json(stats);
     }
     catch (err) {
@@ -229,11 +219,11 @@ router.get('/stats', (req, res, next) => {
  *       200:
  *         description: Tasks reset successfully
  */
-router.post('/reset', (req, res, next) => {
+router.post('/reset', async (req, res, next) => {
     try {
-        const updatedTasks = taskService.resetTasks();
+        const updatedTasks = await taskService.resetTasks();
 
-        return res.json(updatedTasks.map(formatTask));
+        return res.json(updatedTasks);
     }
     catch (err) {
         next(err);

@@ -1,113 +1,140 @@
 const db = require("../db/connection");
 
-function getTaskById(id) {
-    return db.prepare(`
-        SELECT id, title, done FROM tasks
-        WHERE id = ?
-    `).get(id);
+async function getTaskById(id) {
+    const result = await db.query(
+        `
+        SELECT id, title, done
+        FROM tasks
+        WHERE id = $1
+        `,
+        [id]
+    );
+    return result.rows[0];
 }
-
-function getAllTasks(filters = {}) {
+async function getAllTasks(filters = {}) {
     let query = `
         SELECT id, title, done
         FROM tasks
     `;
+
     const values = [];
+    const conditions = [];
+
     if (filters.search) {
-        query += ' WHERE title LIKE ?';
         values.push(`%${filters.search}%`);
+        conditions.push(`title ILIKE $${values.length}`);
     }
     if (filters.done !== undefined) {
-        query += filters.search ?
-        ' AND done = ?' :
-        ' WHERE done = ?';
-        values.push(filters.done ? 1 : 0);
+        values.push(filters.done);
+        conditions.push(`done = $${values.length}`);
     }
-    query += ' ORDER BY title ASC';
-    return db.prepare(query).all(...values);
+    if (conditions.length > 0) {
+        query += " WHERE " + conditions.join(" AND ");
+    }
+    query += " ORDER BY title ASC";
+    const result = await db.query(query, values);
+    return result.rows;
 }
 
-function createTask(task) {
-    return db.prepare(`
-        INSERT INTO tasks (id, title, done, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
-    `).run(
-        task.id,
-        task.title,
-        task.done ? 1 : 0,
-        task.created_at,
-        task.updated_at
+async function createTask(task) {
+    const result = await db.query(
+        `
+        INSERT INTO tasks
+        (title, done, created_at, updated_at)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+        `,
+        [
+            task.title,
+            task.done,
+            task.created_at,
+            task.updated_at
+        ]
     );
+    return result.rows[0];
 }
 
-function updateTask(id, data) {
+async function updateTask(id, data) {
+    const fields = [];
+    const values = [];
+
     if (data.title !== undefined) {
-        db.prepare(`
-            UPDATE tasks
-            SET title = ?, updated_at = ?
-            WHERE id = ?
-        `).run(
-            data.title,
-            new Date().toISOString(),
-            id
-        );
+        values.push(data.title);
+        fields.push(`title = $${values.length}`);
     }
-
     if (data.done !== undefined) {
-        db.prepare(`
-            UPDATE tasks
-            SET done = ?, updated_at = ?
-            Where id = ?
-            `).run(
-            data.done ? 1 : 0,
-            new Date().toISOString(),
-            id
-            );
-        }
-}
+        values.push(data.done);
+        fields.push(`done = $${values.length}`);
+    }
+    values.push(new Date());
+    fields.push(`updated_at = $${values.length}`);
+    values.push(id);
 
-function deleteTask(id) {
-    return db.prepare(`
-        DELETE FROM tasks
-        WHERE id = ?
-    `).run(id);
-}
-
-function getStats() {
-    return db.prepare(`
-        SELECT COUNT(*) AS total,
-        COALESCE(SUM(CASE WHEN done = 1 THEN 1 ELSE 0 END), 0) AS done,
-        COALESCE(SUM(CASE WHEN done = 0 THEN 1 ELSE 0 END), 0) AS open
-        FROM tasks
-    `).get();
-}
-
-function resetTasks() {
-    const now = new Date().toISOString();
-    db.prepare('DELETE FROM tasks').run();
-    db.prepare(`
-    INSERT INTO tasks (id, title, done, created_at, updated_at)
-    VALUES
-        (1, 'Buy a book', 0, ?, ?),
-        (2, 'Read a book', 1, ?, ?),
-        (3, 'Cook a meal', 0, ?, ?)
-    `).run(
-        now, now,
-        now, now,
-        now, now
+    const result = await db.query(
+        `
+        UPDATE tasks
+        SET ${fields.join(", ")}
+        WHERE id = $${values.length}
+        RETURNING *
+        `,
+        values
     );
-    return db.prepare(`
-        SELECT id, title, done FROM tasks
-        ORDER BY title ASC
-    `).all();
+    return result.rows[0];
 }
 
-function getNextId() {
-    const row = db.prepare(`
-        SELECT MAX(id) AS maxId
+async function deleteTask(id) {
+    const result = await db.query(
+        `
+        DELETE FROM tasks
+        WHERE id = $1
+        RETURNING *
+        `,
+        [id]
+    );
+    return result.rows[0];
+}
+
+async function getStats() {
+    const result = await db.query(
+        `
+        SELECT 
+        COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN done THEN 1 ELSE 0 END),0) AS done,
+        COALESCE(SUM(CASE WHEN NOT done THEN 1 ELSE 0 END),0) AS open
         FROM tasks
-    `).get();
-    return row.maxId === null ? 1 : row.maxId + 1;
+        `
+    );
+    return result.rows[0];
+}
+
+async function resetTasks() {
+    const now = new Date();
+
+    await db.query("TRUNCATE TABLE tasks RESTART IDENTITY");
+    await db.query(
+        `
+        INSERT INTO tasks
+        (title, done, created_at, updated_at)
+        VALUES
+        ($1, $2, $3, $4),
+        ($5, $6, $7, $8),
+        ($9, $10, $11, $12)
+        `,
+        [
+            "Buy a book", false, now, now,
+            "Read a book", true, now, now,
+            "Cook a meal", false, now, now
+        ]
+    );
+
+    const result = await db.query(
+        `
+        SELECT id,title,done
+        FROM tasks
+        ORDER BY title ASC
+        `
+    );
+    return result.rows;
 }
 
 module.exports = {
@@ -117,6 +144,5 @@ module.exports = {
     updateTask,
     deleteTask,
     getStats,
-    resetTasks,
-    getNextId
+    resetTasks
 };
