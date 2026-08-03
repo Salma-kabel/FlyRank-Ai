@@ -81,7 +81,7 @@ docker compose up
 
 Command:
 
-The following command returns all tasks ordered alphabetically by title.
+The following command returns all tasks. The API returns tasks ordered alphabetically by title by default.
 
 ```bash
 curl -i http://localhost:3000/tasks
@@ -166,6 +166,66 @@ To verify database persistence:
 5. Confirmed that the previously created and modified tasks were still present.
 
 This demonstrates that PostgreSQL data is persisted using the Docker volume (`postgres-data`).
+
+## Index Testing
+
+A dataset of 10,000 tasks was generated to test query performance and compare query execution plans before and after adding an index.
+
+The purpose of this test was to observe how PostgreSQL changes its query strategy when an index is available.
+
+### Before adding an index
+
+The following query was tested:
+
+```sql
+EXPLAIN ANALYZE
+SELECT *
+FROM tasks
+WHERE title = 'Task 9000';
+```
+
+Before creating an index, PostgreSQL used a sequential scan (`Seq Scan`). This means PostgreSQL scanned the table row by row and checked each row until it found the matching task.
+
+Output:
+
+```text
+Seq Scan on tasks  (cost=0.00..166.50 rows=37 width=53) (actual time=1.857..1.936 rows=1 loops=1)
+  Filter: (title = 'Task 9000'::text)
+  Rows Removed by Filter: 10005
+Planning Time: 10.587 ms
+Execution Time: 2.031 ms
+```
+
+### After adding an index on the title column
+
+An index was created on the `title` column:
+
+```sql
+CREATE INDEX idx_tasks_title
+ON tasks(title);
+```
+
+The same query was executed again:
+
+```sql
+EXPLAIN ANALYZE
+SELECT *
+FROM tasks
+WHERE title = 'Task 9000';
+```
+
+After adding the index, PostgreSQL used an index scan (`Index Scan`). Instead of scanning the entire table, PostgreSQL used the index to locate the matching row directly.
+
+Output:
+
+```text
+Index Scan using idx_tasks_title on tasks  (cost=0.29..8.30 rows=1 width=30) (actual time=0.729..0.778 rows=1 loops=1)
+  Index Cond: (title = 'Task 9000'::text)
+Planning Time: 17.456 ms
+Execution Time: 7.324 ms
+```
+
+The index changed the query execution plan from a sequential scan to an index scan. This allows PostgreSQL to locate matching rows using the index instead of scanning the entire table. The benefit of indexes becomes more noticeable as the dataset size increases.
 
 ## Technologies Used
 
