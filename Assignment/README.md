@@ -14,7 +14,7 @@ This is a simple REST API built with **Node.js**, **Express**, and **SQLite** fo
 ```bash
 git clone https://github.com/Salma-kabel/FlyRank-Ai.git
 cd "FlyRank-Ai"
-cd "Assignment 1"
+cd "Assignment"
 npm install
 ```
 

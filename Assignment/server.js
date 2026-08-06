@@ -214,17 +214,13 @@ app.post('/tasks', (req, res) => {
     else if (typeof title !== 'string' || title.trim() === "") {
         return res.status(400).json({"error": "Invalid title. Title must be a non-empty string."});
     }
-    const row = db.prepare(`
-        SELECT MAX(id) AS maxId
-        FROM tasks
-        `).get();
-    const id = row.maxId === null? 1 : row.maxId + 1;
-    const task = { id, title, done: false, created_at: new Date().toISOString(),
+
+    const task = { title, done: false, created_at: new Date().toISOString(),
          updated_at: new Date().toISOString() };
     db.prepare(`
-        INSERT INTO tasks (id, title, done, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
-    `).run(task.id, task.title, task.done? 1 : 0, task.created_at, task.updated_at);
+        INSERT INTO tasks (title, done, created_at, updated_at)
+        VALUES (?, ?, ?, ?)
+    `).run(task.title, task.done? 1 : 0, task.created_at, task.updated_at);
     return res.status(201).json(formatTask(task));
 });
 
@@ -365,11 +361,11 @@ app.post('/reset', (req, res) => {
     const now = new Date().toISOString();
     db.prepare('DELETE FROM tasks').run();
     db.prepare(`
-    INSERT INTO tasks (id, title, done, created_at, updated_at)
+    INSERT INTO tasks (title, done, created_at, updated_at)
     VALUES
-        (1, 'Buy a book', 0, ?, ?),
-        (2, 'Read a book', 1, ?, ?),
-        (3, 'Cook a meal', 0, ?, ?)
+        ('Buy a book', 0, ?, ?),
+        ('Read a book', 1, ?, ?),
+        ('Cook a meal', 0, ?, ?)
     `).run(now, now, now, now, now, now);
     const updatedTasks = db.prepare(`
         SELECT id, title, done FROM tasks
