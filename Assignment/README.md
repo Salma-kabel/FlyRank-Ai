@@ -20,9 +20,9 @@ cd "Assignment"
 ```
 ## Environment Variables
 
-The default values in `.env.example` work with the provided Docker Compose configuration. You only need to modify them if you want to use different database credentials or settings.
+The project uses environment variables for configuration.
 
-Copy the example environment file:
+Copy the provided `.env.example` file to `.env` before starting the application:
 
 ```bash
 cp .env.example .env
@@ -33,33 +33,31 @@ On Windows PowerShell:
 ```powershell
 Copy-Item .env.example .env
 ```
+The `.env.example` file contains all required environment variable names. Update the values only if you want to use different database credentials or configuration.
 
 ## Running the Server
 
 ### Start the application and PostgreSQL together:
 
-This command builds the application image (the first time) and starts both the Express application and the PostgreSQL database.
+After copying `.env.example` to `.env`, start the entire stack (Express API and PostgreSQL) with:
 
 ```bash
 docker compose up --build
 ```
-
-The API is available at http://localhost:3000 after the containers start.
-
-Swagger UI is available at http://localhost:3000/docs.
-
-### Stop the containers:
-
-```bash
-docker compose down
-```
-
-### Subsequent Runs
-
-After the initial build, start the application with:
+On subsequent runs, you can simply use:
 
 ```bash
 docker compose up
+```
+
+The API will be available at http://localhost:3000 after the containers start.
+
+Swagger UI will be available at http://localhost:3000/docs.
+
+### Stop the containers
+
+```bash
+docker compose down
 ```
 
 ## Endpoints Table
@@ -67,7 +65,7 @@ docker compose up
 | Method | Endpoint      | Description                                    |
 | ------ | ------------- | -----------------------------------------------|
 | GET    | `/`           | Returns API information                        |
-| GET    | `/health`     | Checks whether the server is running           |
+| GET    | `/health`     | Checks that the API is running and verifies the PostgreSQL database connection|
 | GET    | `/tasks`      | Returns all tasks with optional filtering and search|
 | GET    | `/tasks/{id}` | Returns a task by ID                           |
 | POST   | `/tasks`      | Creates a new task                             |
@@ -113,6 +111,7 @@ Open the following URL after starting the server to access the interactive Swagg
 http://localhost:3000/docs
 ```
 ### Swagger UI Home
+
 ![Swagger UI](Images/Swagger.PNG)
 
 ### GET /tasks Response
@@ -120,6 +119,12 @@ http://localhost:3000/docs
 The response returned after executing the **GET /tasks** endpoint in Swagger UI.
 
 ![GET /tasks Example](Images/Swagger-get-tasks.PNG)
+
+## Database Screenshot
+
+The following screenshot shows the seeded data stored in the PostgreSQL `tasks` table.
+
+![PostgreSQL Tasks Table](Images/postgres-data.PNG)
 
 ## Optional Extras Added
 
@@ -226,6 +231,19 @@ Execution Time: 7.324 ms
 ```
 
 The index changed the query execution plan from a sequential scan to an index scan. This allows PostgreSQL to locate matching rows using the index instead of scanning the entire table. The benefit of indexes becomes more noticeable as the dataset size increases.
+
+## Multi-stage Docker Build
+
+The application uses a multi-stage Dockerfile to separate the build stage from the runtime stage.
+
+## Image Size Comparison
+
+| Build | Content Size |
+| ------ | ------------ |
+| Before multi-stage | 446 MB |
+| After multi-stage | 443 MB |
+
+Using a multi-stage Dockerfile separates the build and runtime stages. In this project, the image size reduction was small because both stages use the same `node:24` base image and the application does not require additional build tools.
 
 ## Technologies Used
 

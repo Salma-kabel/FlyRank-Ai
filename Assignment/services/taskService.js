@@ -119,6 +119,10 @@ async function resetTasks() {
     return await taskRepository.resetTasks();
 }
 
+async function checkHealth() {
+    return await taskRepository.checkHealth();
+}
+
 module.exports = {
     getAllTasks,
     createTask,
@@ -126,5 +130,6 @@ module.exports = {
     getTaskById,
     deleteTask,
     getStats,
-    resetTasks
+    resetTasks,
+    checkHealth
 };

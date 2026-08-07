@@ -24,8 +24,13 @@ router.get('/', (req, res) => {
  *       200:
  *         description: Server is alive and running
  */
-router.get('/health', (req, res) => {
-    res.json({ "status": "ok" });
+router.get('/health', async(req, res, next) => {
+    try {
+        const response = await taskService.checkHealth();
+        return res.json(response);
+    } catch (err) {
+        next(err);
+    }
 });
 
 /**

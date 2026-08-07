@@ -137,6 +137,14 @@ async function resetTasks() {
     return result.rows;
 }
 
+async function checkHealth() {
+    await db.query("SELECT 1");
+    return {
+        status: "ok",
+        db: "ok"
+    };
+}
+
 module.exports = {
     getTaskById,
     getAllTasks,
@@ -144,5 +152,6 @@ module.exports = {
     updateTask,
     deleteTask,
     getStats,
-    resetTasks
+    resetTasks,
+    checkHealth
 };
