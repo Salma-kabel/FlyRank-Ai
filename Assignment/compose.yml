@@ -13,6 +13,8 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_URL: ${REDIS_URL}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
     depends_on:
       - db
       - redis
