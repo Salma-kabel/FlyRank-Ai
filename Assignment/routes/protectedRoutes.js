@@ -1,27 +1,16 @@
 const express = require("express");
+const authService = require("../services/authService");
 
 const router = express.Router();
 
-router.get("/profile", (req, res) => {
-    const authHeader = req.headers.authorization;
+router.get("/profile", async (req, res, next) => {
+    try {
+        const user = await authService.getProfile(req.headers.authorization);
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({
-            error: "Access token required"
-        });
+        return res.status(200).json(user);
+    } catch (err) {
+        next(err);
     }
-
-    const token = authHeader.substring(7);
-
-    if (!token) {
-        return res.status(401).json({
-            error: "Access token required"
-        });
-    }
-
-    return res.status(200).json({
-        message: "Access token received"
-    });
 });
 
 module.exports = router;
