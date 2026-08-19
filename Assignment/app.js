@@ -4,6 +4,8 @@ const swaggerJsdoc = require("swagger-jsdoc");
 const taskRoutes = require("./routes/taskRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const authRoutes = require("./routes/authRoutes");
+const publicRoutes = require("./routes/publicRoutes");
+const protectedRoutes = require("./routes/protectedRoutes");
 const app = express();
 
 const swaggerSpec = swaggerJsdoc({
@@ -24,6 +26,10 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/", taskRoutes);
 
 app.use("/auth", authRoutes);
+
+app.use("/public", publicRoutes);
+
+app.use("/protected", protectedRoutes);
 
 app.use(errorHandler);
 
