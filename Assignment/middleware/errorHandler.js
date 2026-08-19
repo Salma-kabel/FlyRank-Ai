@@ -1,4 +1,8 @@
-const { ValidationError, NotFoundError } = require("../errors");
+const {
+    ValidationError,
+    NotFoundError,
+    UnauthorizedError 
+    } = require("../errors");
 
 function errorHandler(err, req, res, next) {
 
@@ -13,6 +17,12 @@ function errorHandler(err, req, res, next) {
             error: err.message
         });
     }
+
+    if (err instanceof UnauthorizedError) {
+        return res.status(401).json({
+            error: err.message
+        });
+    }   
 
     console.error(err);
 
