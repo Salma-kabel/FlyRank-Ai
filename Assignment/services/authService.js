@@ -48,32 +48,33 @@ async function login(data) {
     };
 }
 
-async function getProfile(authHeader) {
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        throw new UnauthorizedError("Access token required");
-    }
-
-    const token = authHeader.substring(7);
-
-    if (!token) {
-        throw new UnauthorizedError("Access token required");
-    }
-
-    const { data, error } = await supabase.auth.getUser(token);
-
-    if (error || !data.user) {
-        throw new UnauthorizedError("Invalid or expired token");
-    }
-
+async function getProfile(user) {
     return {
-        id: data.user.id,
-        email: data.user.email,
-        created_at: data.user.created_at
+        id: user.id,
+        email: user.email,
+        created_at: user.created_at
     };
+}
+
+async function getDashboard(user) {
+    return {
+        message: "Welcome to the dashboard",
+        user_id: user.id
+    };
+}
+
+async function logout(token) {
+    const { error } = await supabase.auth.signOut(token);
+
+    if (error) {
+        throw new Error(error.message);
+    }
 }
 
 module.exports = {
     signup,
     login,
-    getProfile
+    getProfile,
+    getDashboard,
+    logout
 };
