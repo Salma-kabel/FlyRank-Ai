@@ -2,14 +2,43 @@
 
 ## Introduction
 
-This is a simple REST API built with **Node.js**, **Express**, and **PostgreSQL** for managing tasks. The application runs together with a PostgreSQL database using **Docker Compose** and supports full CRUD (Create, Read, Update, Delete) operations. Interactive API documentation is provided through Swagger UI.
+This project is a secure REST API built with **Node.js**, **Express**, **PostgreSQL**, and **Supabase Auth**.
+
+The API provides task management functionality together with user authentication. Users can:
+
+- Create an account
+- Log in and receive JWT access and refresh tokens
+- Access protected endpoints using a Bearer JWT
+- Log out through a protected logout endpoint
+- Access public endpoints without authentication
+- Manage tasks through the REST API
+
+The application runs together with PostgreSQL using **Docker Compose**. Interactive API documentation is provided through **Swagger UI**, including Bearer JWT authentication for protected endpoints.
 
 ## Architecture
 
-The application keeps the same route and service layers as the previous version. Only the data access layer was replaced by a PostgreSQL repository using the `pg` library. The service and route responsibilities remained the same, with the primary change being the use of asynchronous database operations.
+The application follows a layered architecture:
 
-## Prerequisites 
-- Docker Desktop (recommended)
+```text
+Routes
+   ↓
+Middleware
+   ↓
+Services
+   ↓
+Repositories / Supabase
+```
+- Routes handle HTTP requests and responses.
+- Authentication middleware verifies Bearer JWTs before protected routes are executed.
+- Services contain the application's business logic.
+- Repository handles PostgreSQL data access for task operations.
+- Supabase Auth handles user authentication and JWT verification.
+
+## Prerequisites
+
+- Docker Desktop
+- A Supabase project
+- Git
 
 ## Installation
 
@@ -20,26 +49,26 @@ cd "Assignment"
 ```
 ## Environment Variables
 
-The project uses environment variables for configuration.
+The application uses environment variables for database, Redis, and Supabase configuration.
 
-Copy the provided `.env.example` file to `.env` before starting the application:
+Copy the provided `.env.example` file to `.env` before starting the application.
 
-```bash
-cp .env.example .env
-```
-
-On Windows PowerShell:
+### Windows PowerShell
 
 ```powershell
 Copy-Item .env.example .env
 ```
-The `.env.example` file contains all required environment variable names. Update the values only if you want to use different database credentials or configuration.
+### Linux
+```bash
+cp .env.example .env
+```
+The `.env.example` file contains all required environment variable names. Update the values in `.env` with your own configuration, including your Supabase project URL and authentication key.
 
 ## Running the Server
 
 ### Start the application and PostgreSQL together:
 
-After copying `.env.example` to `.env`, start the entire stack (Express API and PostgreSQL) with:
+After copying `.env.example` to `.env`, start the application and PostgreSQL database with:
 
 ```bash
 docker compose up --build
@@ -62,18 +91,86 @@ docker compose down
 
 ## Endpoints Table
 
-| Method | Endpoint      | Description                                    |
-| ------ | ------------- | -----------------------------------------------|
-| GET    | `/`           | Returns API information                        |
-| GET    | `/health`     | Checks that the API is running and verifies the PostgreSQL database connection|
-| GET    | `/tasks`      | Returns all tasks with optional filtering and search|
-| GET    | `/tasks/{id}` | Returns a task by ID                           |
-| POST   | `/tasks`      | Creates a new task                             |
-| PUT    | `/tasks/{id}` | Updates a task by ID                           |
-| DELETE | `/tasks/{id}` | Deletes a task by ID                           |
-| GET    | `/stats`      | Returns task statistics                        |
-| POST   | `/reset`      | Restores the initial database tasks            |
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| GET | `/` | Returns information about the API | No |
+| GET | `/health` | Checks that the API is running and verifies the PostgreSQL connection | No |
+| GET | `/tasks` | Returns all tasks with optional filtering and search | No |
+| GET | `/tasks/{id}` | Returns a task by ID | No |
+| POST | `/tasks` | Creates a new task | No |
+| PUT | `/tasks/{id}` | Updates a task by ID | No |
+| DELETE | `/tasks/{id}` | Deletes a task by ID | No |
+| GET | `/stats` | Returns task statistics | No |
+| POST | `/reset` | Restores the initial database tasks | No |
+| POST | `/auth/signup` | Creates a new user account | No |
+| POST | `/auth/login` | Logs in a user and returns JWT tokens | No |
+| POST | `/auth/logout` | Logs out the authenticated user | Yes |
+| GET | `/public/info` | Returns public information | No |
+| GET | `/protected/profile` | Returns the authenticated user's profile | Yes |
+| GET | `/protected/dashboard` | Returns protected dashboard information | Yes |
 
+## Authentication
+
+The API uses **Supabase Auth** for user authentication.
+
+### Sign Up
+
+Create a user account:
+
+```http
+POST /auth/signup
+```
+Example request:
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+### Login
+Log in using the registered credentials:
+```http
+POST /auth/login
+```
+A successful login returns an access_token and refresh_token.
+
+### Accessing Protected Routes
+Protected endpoints require the access token in the Authorization header:
+
+```http
+Authorization: Bearer <access_token>
+```
+### Logout
+
+The logout endpoint is protected and requires a valid access token:
+
+```http
+POST /auth/logout
+```
+A successful logout returns 204 No Content.
+
+## Authentication Flow
+
+```text
+POST /auth/signup
+        ↓
+   Create account
+        ↓
+POST /auth/login
+        ↓
+   Receive JWT
+        ↓
+Swagger Authorize
+        ↓
+Authorization: Bearer <JWT>
+        ↓
+Authentication Middleware
+        ↓
+Supabase verifies JWT
+        ↓
+Protected Route
+```
+The authentication middleware is reusable across protected endpoints, preventing authentication logic from being duplicated inside individual routes.
 
 ## Example Command
 
@@ -105,20 +202,38 @@ Keep-Alive: timeout=5
 
 ## Swagger UI
 
-Open the following URL after starting the server to access the interactive Swagger UI:
+Interactive API documentation is available at:
 
 ```text
 http://localhost:3000/docs
 ```
+Swagger UI includes the API's public and protected endpoints.
+
+Protected endpoints are marked with a 🔒 lock icon.
 ### Swagger UI Home
 
-![Swagger UI](Images/Swagger.PNG)
+![Swagger UI](Images/swagger-endpoints.PNG)
 
 ### GET /tasks Response
 
 The response returned after executing the **GET /tasks** endpoint in Swagger UI.
 
 ![GET /tasks Example](Images/Swagger-get-tasks.PNG)
+
+### Using JWT Authentication in Swagger
+
+1. Create an account using POST /auth/signup.
+2. Log in using POST /auth/login.
+3. Copy the returned access_token.
+4. Click the Authorize button in Swagger UI.
+5. Enter the JWT access token.
+6. Click Authorize.
+7. Use Try it out on a protected endpoint such as GET /protected/profile
+
+![AUTH Token](Images/auth1.PNG)    ![AUTH-Token](Images/auth2.PNG)
+
+### Protected Profile Response
+![Protected Profile](Images/protected-profile-response.PNG) 
 
 ## Database Screenshot
 
@@ -172,66 +287,6 @@ To verify database persistence:
 
 This demonstrates that PostgreSQL data is persisted using the Docker volume (`postgres-data`).
 
-## Index Testing
-
-A dataset of 10,000 tasks was generated to test query performance and compare query execution plans before and after adding an index.
-
-The purpose of this test was to observe how PostgreSQL changes its query strategy when an index is available.
-
-### Before adding an index
-
-The following query was tested:
-
-```sql
-EXPLAIN ANALYZE
-SELECT *
-FROM tasks
-WHERE title = 'Task 9000';
-```
-
-Before creating an index, PostgreSQL used a sequential scan (`Seq Scan`). This means PostgreSQL scanned the table row by row and checked each row until it found the matching task.
-
-Output:
-
-```text
-Seq Scan on tasks  (cost=0.00..166.50 rows=37 width=53) (actual time=1.857..1.936 rows=1 loops=1)
-  Filter: (title = 'Task 9000'::text)
-  Rows Removed by Filter: 10005
-Planning Time: 10.587 ms
-Execution Time: 2.031 ms
-```
-
-### After adding an index on the title column
-
-An index was created on the `title` column:
-
-```sql
-CREATE INDEX idx_tasks_title
-ON tasks(title);
-```
-
-The same query was executed again:
-
-```sql
-EXPLAIN ANALYZE
-SELECT *
-FROM tasks
-WHERE title = 'Task 9000';
-```
-
-After adding the index, PostgreSQL used an index scan (`Index Scan`). Instead of scanning the entire table, PostgreSQL used the index to locate the matching row directly.
-
-Output:
-
-```text
-Index Scan using idx_tasks_title on tasks  (cost=0.29..8.30 rows=1 width=30) (actual time=0.729..0.778 rows=1 loops=1)
-  Index Cond: (title = 'Task 9000'::text)
-Planning Time: 17.456 ms
-Execution Time: 7.324 ms
-```
-
-The index changed the query execution plan from a sequential scan to an index scan. This allows PostgreSQL to locate matching rows using the index instead of scanning the entire table. The benefit of indexes becomes more noticeable as the dataset size increases.
-
 ## Multi-stage Docker Build
 
 The application uses a multi-stage Dockerfile to separate the build stage from the runtime stage.
@@ -253,6 +308,11 @@ Using a multi-stage Dockerfile separates the build and runtime stages. In this p
 - Docker
 - Docker Compose
 - pg
+- Redis
+- Supabase Auth
+- JWT
 - Swagger UI
+- swagger-jsdoc
+- swagger-ui-express
 
 
