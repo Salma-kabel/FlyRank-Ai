@@ -212,7 +212,7 @@ Swagger UI includes the API's public and protected endpoints.
 Protected endpoints are marked with a 🔒 lock icon.
 ### Swagger UI Home
 
-![Swagger UI](Images/swagger-endpoints.PNG)
+![Swagger UI](Images/swagger-endpoints.png)
 
 ### GET /tasks Response
 
