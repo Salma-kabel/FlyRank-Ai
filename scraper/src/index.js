@@ -1,6 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const cheerio = require("cheerio");
+const {
+    fetchBookPage,
+    extractBookRecord
+} = require("./books");
 
 const START_URL = "https://books.toscrape.com/catalogue/page-1.html";
 
@@ -20,7 +24,7 @@ async function fetchPage(pageUrl) {
     if (fs.existsSync(cacheFile)) {
         const html = fs.readFileSync(cacheFile, "utf-8");
 
-        console.log(`CACHE HIT ${html.length} bytes`);
+        console.log(`CACHE HIT`);
         return html;
     }
 
@@ -58,7 +62,7 @@ async function fetchPage(pageUrl) {
         fs.mkdirSync(CACHE_DIR, { recursive: true });
         fs.writeFileSync(cacheFile, html);
 
-        console.log(`FETCH ${html.length} bytes`);
+        console.log(`FETCH`);
 
         return html;
     } finally {
@@ -69,7 +73,7 @@ async function fetchPage(pageUrl) {
 async function discoverBooks() {
     let currentUrl = START_URL;
 
-    const allBookLinks = [];
+    const allBooks = [];
     let cataloguePages = 0;
 
     while (cataloguePages < 3) {
@@ -82,7 +86,10 @@ async function discoverBooks() {
 
             const absoluteUrl = new URL(href, currentUrl).href;
 
-            allBookLinks.push(absoluteUrl);
+            allBooks.push({
+            url: absoluteUrl,
+            sourcePage: currentUrl
+            });
         });
 
         cataloguePages++;
@@ -98,14 +105,58 @@ async function discoverBooks() {
         currentUrl = new URL(nextHref, currentUrl).href;
     }
 
-    const uniqueBookLinks = [...new Set(allBookLinks)];
+    const uniqueBooks = [
+    ...new Map(
+        allBooks.map(book => [book.url, book])
+    ).values()
+];
 
     console.log(`catalogue_pages=${cataloguePages}`);
-    console.log(`discovered=${allBookLinks.length}`);
-    console.log(`unique_urls=${uniqueBookLinks.length}`);
+    console.log(`discovered=${allBooks.length}`);
+    console.log(`unique_urls=${uniqueBooks.length}`);
+
+    return  uniqueBooks;
 }
 
-discoverBooks().catch((err) => {
+
+async function scrapeBooks(books) {
+    const records = [];
+
+    for (const book of books) {
+        try {
+            const html = await fetchBookPage(book.url);
+
+            const record = extractBookRecord(
+                html,
+                book.url,
+                book.sourcePage
+            );
+
+            records.push(record);
+
+            console.log(`SCRAPED ${records.length}/${books.length}`);
+        } catch (err) {
+            console.error(`FAILED ${book.url}: ${err.message}`);
+        }
+    }
+
+    if (records.length > 0) {
+        console.log("FIRST RAW RECORD:");
+        console.log(records[0]);
+    }
+
+    return records;
+}
+
+async function main() {
+    const books = await discoverBooks();
+
+    const records = await scrapeBooks(books);
+
+    console.log(`detail_pages=${records.length}`);
+}
+
+main().catch((err) => {
     console.error("ERROR:", err.message);
     process.exit(1);
 });
